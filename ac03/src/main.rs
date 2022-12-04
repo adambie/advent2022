@@ -40,15 +40,42 @@ fn getPoints (what : char) -> u64 {
     points + 1
 }
 
+fn findCommon (group: Vec<String>) -> char {
+    let mut found: char;
+
+    let a: Vec<char> = group[0].chars().collect();
+    let b: Vec<char> = group[1].chars().collect();
+    let c: Vec<char> = group[2].chars().collect();
+
+    let common: Vec<char>  = a.intersect(b.intersect(c));
+    found = common[0];
+    found
+}
+
 fn main() {
 
     let mut priosum: u64 = 0;
+    let mut priosum2: u64 = 0;
 
     let lines = lines_from_file("03.txt").expect("Could not load lines");
-    for line in lines {
+    let mut count: i32 =0;
+    let mut linesgroup: Vec<String> ;
 
+    linesgroup = Vec::new();
+    for line in lines {
         priosum += getPrio(&line);
+        
+        linesgroup.push(line);
+
+        if linesgroup.len() == 3 {
+            println!("group: {:?}",linesgroup.clone());
+            priosum2 +=getPoints(findCommon(linesgroup.clone()));
+            linesgroup = Vec::new();
+        }       
+        
 
     }
     println!("priosum: {}",priosum);
+    println!("priosum2: {}",priosum2);
+
 }
