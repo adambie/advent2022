@@ -18,7 +18,9 @@ fn main() {
     let vert = lines.len();
     let mut array: Vec<Vec<i32>> = vec![vec![-1; horiz]; vert];
     let mut visible_array: Vec<Vec<bool>> = vec![vec![false; horiz]; vert];
-    
+    let mut score_array: Vec<Vec<usize>> = vec![vec![0; horiz]; vert];
+
+
     let mut y =0;   
     for line in lines {
         let chars: Vec<char> = line.chars().collect();
@@ -119,4 +121,92 @@ fn main() {
         }
         println!("");
     }
+
+    for x in 0..horiz {
+        for y in 0..vert {
+            score_array[x][y]=count_visible(x, y, array.clone(),horiz.clone(), vert.clone());
+        }
+    }    
+
+    let mut max_score: usize =0;
+    for x in 0..horiz {
+        for y in 0..vert {
+            if score_array[x][y]> max_score {
+                max_score = score_array[x][y];
+            }
+        }
+    }        
+    println!("max score: {}",max_score);
+
+
+    fn count_visible (x: usize, y:usize, array: Vec<Vec<i32>>, horiz: usize, vert: usize) -> usize {
+        let mut points1: usize = 0;
+        let mut points2: usize = 0;
+        let mut points3: usize = 0;
+        let mut points4: usize = 0;
+        //println!("----- checks for {} : {} ",x,y);
+        //down
+
+        'i_loop: for w in x+1..horiz { 
+            //println!("inner check {} : {}",w,y);
+            if array[w][y] < array[x][y] {
+                points1 += 1;
+            }
+            else if array[w][y] >= array[x][y] {
+                points1 += 1;
+                break 'i_loop;
+            } 
+        }
+        
+
+        //up
+        
+        'ii_loop:  for w in (0..x).rev() { 
+            
+            if array[w][y] < array[x][y] {
+                points2 += 1;
+            }
+            else if array[w][y] >= array[x][y] {
+                points2 += 1;
+                break 'ii_loop;
+            } 
+        }
+        
+
+        //right
+        
+        'iii_loop : for w in y+1..vert { 
+            
+            if array[x][w] < array[x][y] {
+                points3 += 1;
+            }
+            else if array[x][w] >= array[x][y] {
+                points3 += 1;
+                break 'iii_loop;
+            } 
+        }
+        
+
+        //left
+        
+        'iiii_loop : for w in (0..y).rev() { 
+            
+            if array[x][w] < array[x][y] {
+                points4 += 1;
+            }
+            else if array[x][w] >= array[x][y] {
+                points4 += 1;
+                break 'iiii_loop;
+            } 
+        }
+
+        if x==2 && y ==3 {
+            println!("TEST:{} {} {} {} {}",array[x][y], points1,points2,points3,points4);
+        }
+        
+        points1 * points2 * points3 * points4
+
+    }
+
+
 }
