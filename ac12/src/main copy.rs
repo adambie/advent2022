@@ -28,37 +28,22 @@ fn lines_from_file(filename: impl AsRef<Path>) -> io::Result<Vec<String>> {
 
 fn can_go(a: char, b: char) -> bool {
     
-    let mut wa: char = a;
-    let mut wb: char = b;
-    if wa == '$' {
-        wa = 'a';
-    }
-    if wa == '&' {
-        wa = 'z';
-    }
-    if wb == '$' {
-        wb = 'a';
-    }
-    if wb == '&' {
-        wb = 'z';
-    }
-
     let alphabet: Vec<char> = "$abcdefghijklmnopqrstuvwxyz&".chars().collect();
     let posa = alphabet
         .iter()
-        .position(|&x| x == wa)
+        .position(|&x| x == a)
         .unwrap();
 
     let posb = alphabet
         .iter()
-        .position(|&x| x == wb)
+        .position(|&x| x == b)
         .unwrap();        
 
     if ((posb as i32) -(posa as i32)) <= 1 {
-        //println!("checking {} to {} -> OK",a,b);
+        println!("checking {} to {} -> OK",a,b);
         true
     } else {
-        //println!("checking {} to {} -> not OK",a,b);
+        println!("checking {} to {} -> not OK",a,b);
         false
     }
 }
@@ -120,7 +105,7 @@ fn check_neighbours(p: Point, map: &Vec<Vec<char>>, mut distances: &mut Vec<Vec<
         }
     }
     if end_found {
-        //println!("end at: {}", p.dist);
+        println!("end at: {}", p.dist);
     }
     (out, end_found)
 }
@@ -129,10 +114,10 @@ fn main() {
 
     let lines = lines_from_file("12.txt").expect("Could not load lines");
     let mut map: Vec<Vec<char>> = vec![vec![' '; lines.len()]; lines[0].len()];
-    
-    let mapx=lines.len();
-    let mapy=lines[0].len();
+    let mut distances: Vec<Vec<i32>> = vec![vec![9999; lines.len()]; lines[0].len()];
+    let mut Q: Vec<Point> = vec![];
 
+    
     let mut x = 0;
     let mut y = 0;
     for line in lines {
@@ -147,33 +132,22 @@ fn main() {
 
     let mut startx =0;
     let mut starty =0;
+    let mut endx =0;
+    let mut endy =0;
 
-
-    let mut all_starts: Vec<Point> = vec![];
 
     for x in 0..map.len() {
         for y in 0..map[0].len() {
             if map[x][y] == '$' {
-                //startx = x;
-                //starty = y;
-                all_starts.push(Point::new(x as i32,y as i32,9999));
-            }         
-            if map[x][y] == 'a' {
-                //startx = x;
-                //starty = y;
-                all_starts.push(Point::new(x as i32,y as i32 ,9999));
-            }         
+                startx = x;
+                starty = y;
+            }
+            if map[x][y] == '&' {
+                endx = x;
+                endy = y;
+            }            
         }
     }
-
-    for start in 0..all_starts.len() {
-
-        let mut distances: Vec<Vec<i32>> = vec![vec![9999; mapx.clone()]; mapy.clone()];
-        let mut Q: Vec<Point> = vec![];
-
-        startx = all_starts[start].x.clone() as usize;
-        starty = all_starts[start].y.clone() as usize;
-        //println!("checking start {} {} ",startx, starty);
     
     //println!("start {} {}", startx, starty);
     //println!("end   {} {}", endx, endy);    
@@ -185,33 +159,23 @@ fn main() {
 
     loop {
 
-        if end_found {
+        if Q.len() == 0 || end_found {
             println!("end after: {}",Q[0].dist);
-            all_starts[start].dist=Q[0].dist;
             break;
         }
-        if Q.len() == 0 {
-            break;
-        }
-        //println!("Q len: {}, shortest {}", Q.len(), Q[0].dist);
+        println!("Q len: {}, shortest {}", Q.len(), Q[0].dist);
         let current: Point = Q.pop().unwrap();
         let mut new_ones:Vec<Point>;
          (new_ones, end_found) = 
             check_neighbours(current, &map, &mut distances, &mut end_found);
-        //println!("add: {}", new_ones.len());
+        println!("add: {}", new_ones.len());
         for _ in 0..new_ones.len() {
             Q.push(new_ones.pop().unwrap());
         }
 
         Q.sort_by_key(|q| q.dist); 
         Q.reverse();
-
     }
-}
-
-    all_starts.sort_by_key(|q| q.dist);
-    
-    println!("shortest is: {}",all_starts[0].dist);
     // for x in 0..Q.len() {
     //     println!("{:?}",Q[x]);
     // }
