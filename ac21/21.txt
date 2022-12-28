@@ -1745,7 +1745,7 @@ bmpq: lzbz * szlq
 gjhb: fwbj - mnfs
 jljb: zqnj * gwmv
 tjht: 7
-humn: 1200
+humn: 1000
 nmsl: 2
 wqfg: 1
 lwdh: 1
