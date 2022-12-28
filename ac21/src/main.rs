@@ -359,6 +359,19 @@ fn part2() {
     let mut direction = 1;
     let mut factor = 100000000000;
     loop {
+
+        //this section is only to compare number I got 3093175982597 with
+        //number got from internet solution 3093175982595
+        //they both give good result however only 3093175982595 is accepted..
+        // x=3093175982597;
+        // let simple_left=simplify(left_instr.clone(), x).parse::<i64>().unwrap();
+        // println!("result at {} : {}",x,simple_left);
+        // x=3093175982595;
+        // let simple_left=simplify(left_instr.clone(), x).parse::<i64>().unwrap();
+        // println!("result at {} : {}",x,simple_left);
+        // break;
+        //test end
+        
         x += factor * direction;
         
         let simple_left=simplify(left_instr.clone(), x).parse::<i64>().unwrap();
