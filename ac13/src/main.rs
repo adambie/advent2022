@@ -1,133 +1,101 @@
 use std::cmp::Ordering;
 
-use itertools::Itertools;
-
-#[derive(Debug, PartialEq, Clone, Eq)]
-enum Packet {
-    Num(u8),
-    List(Vec<Packet>),
+#[derive(Debug, PartialEq)]
+enum Node {
+    Leaf(i32),
+    Inner(Box<Vec<Node>>),
 }
 
-impl Ord for Packet {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        match (self, other) {
-            (Self::List(a), Self::List(b)) => a.cmp(b),
-            (Self::List(a), Self::Num(b)) => a.cmp(&vec![Self::Num(*b)]),
-            (Self::Num(a), Self::List(b)) => vec![Self::Num(*a)].cmp(&b),
-            (Self::Num(a), Self::Num(b)) => a.cmp(b),
+fn parse(packet: &str) -> Node {
+    let mut num = None;
+    let mut vecs = vec![vec![]];
+    let push_num = |num: Option<i32>, vecs: &mut Vec<Vec<Node>>| {
+        let lev = vecs.len() - 1;
+        if let Some(num) = num {
+            vecs[lev].push(Node::Leaf(num));
+        }
+        None
+    };
+    for c in packet.chars() {
+        match c {
+            '[' => vecs.push(vec![]),
+            ']' => {
+                num = push_num(num, &mut vecs);
+                let lev = vecs.len() - 1;
+                let v = vecs.pop().unwrap();
+                vecs[lev - 1].push(Node::Inner(Box::new(v)));
+            }
+            ' ' => {}
+            ',' => num = push_num(num, &mut vecs),
+            d => num = Some(num.unwrap_or(0) * 10 + (d as u8 - '0' as u8) as i32),
+        };
+    }
+    Node::Inner(Box::new(vecs.pop().unwrap()))
+}
+
+fn compare(first: &Node, second: &Node) -> Ordering {
+    match (first, second) {
+        (Node::Leaf(f_val), Node::Leaf(s_val)) => (*f_val).cmp(s_val),
+        (Node::Inner(f_list), Node::Inner(s_list)) => {
+            let mut i = 0;
+            while i < f_list.len() && i < s_list.len() {
+                match compare(&f_list[i], &s_list[i]) {
+                    Ordering::Equal => {}
+                    other => return other,
+                };
+                i += 1;
+            }
+            f_list.len().cmp(&s_list.len())
+        }
+        (l, Node::Leaf(v)) => compare(l, &Node::Inner(Box::new(vec![Node::Leaf(*v)]))),
+        (Node::Leaf(v), l) => compare(&Node::Inner(Box::new(vec![Node::Leaf(*v)])), l),
+    }
+}
+
+fn solve2(data: &str) {
+    let mut nodes = data
+        .split('\n')
+        .filter(|l| !l.is_empty())
+        .map(|l| parse(l))
+        .collect::<Vec<_>>();
+    nodes.append(&mut vec![parse("[[2]]"), parse("[[6]]")]);
+    nodes.sort_by(|x, y| compare(x, y));
+    let divider_nodes = vec![parse("[[2]]"), parse("[[6]]")];
+    let decoder_key = (0..nodes.len())
+        .filter(|&i| divider_nodes.contains(&nodes[i]))
+        .map(|i| i + 1)
+        .product::<usize>();
+    println!("part 2 decoder_key: {}", decoder_key);
+}
+
+fn solve1(data: &str) {
+    let mut nodes = data
+        .split('\n')
+        .filter(|l| !l.is_empty())
+        .map(|l| parse(l))
+        .collect::<Vec<_>>();
+    
+    let mut result =0;
+    let mut pair =0;
+
+    for x in (0..nodes.len()).step_by(2) {
+        pair +=1;
+        let left = &nodes[x];
+        let right = &nodes[x+1];
+        
+        if compare(left,right) == Ordering::Less {
+            result += &pair;
         }
     }
-}
-
-impl PartialOrd for Packet {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-fn parse() -> Vec<[Packet; 2]> {
-    let input = std::fs::read_to_string("13.txt").unwrap();
-
-    input
-        .split("\n\n")
-        .map(|pair| {
-            let mut lines = pair.lines();
-            let left = lines.next().unwrap();
-            let right = lines.next().unwrap();
-
-            [parse_packet(left), parse_packet(right)]
-        })
-        .collect()
-}
-
-fn parse_packet(s: &str) -> Packet {
-    let chars: Vec<_> = s.chars().collect();
-    // parse_list returns the first parsed packet and the rest of the input
-    // the rest of the input will be empty when it is done
-    let (packet, _) = parse_list(&chars);
-    packet
-}
-
-fn parse_num(list: &[char]) -> (Packet, &[char]) {
-    // find the index where the first number ends
-    let mut i = 0;
-    while i < list.len() && list[i].is_ascii_digit() {
-        i += 1;
-    }
-
-    // parse the number
-    // uses math to concatenate numbers instead of turning them into a string first to parse that
-    let mut num = 0;
-    let mut offset = 1;
-    for c in list[..i].iter().rev() {
-        num += (*c as u8 - b'0') * offset;
-        offset *= 10;
-    }
-
-    // return the number and the rest of the packet
-    (Packet::Num(num), &list[i..])
-}
-
-fn parse_list(list: &[char]) -> (Packet, &[char]) {
-    // start by removing the starting [ of the passed in list
-    // at the end of this function, we remove the ending ] of the passed in list
-    let mut list = &list[1..];
-    let mut packets = Vec::new();
-
-    loop {
-        match list[0] {
-            // list ended, break the loop
-            ']' => break,
-            // skip over ,
-            ',' => list = &list[1..],
-            // beginning of new list, time for recursion to parse the inner list
-            '[' => {
-                let (packet, rest) = parse_list(list);
-                packets.push(packet);
-                list = rest;
-            }
-            // beginning of a number
-            _ => {
-                let (n, rest) = parse_num(list);
-                packets.push(n);
-                list = rest;
-            }
-        }
-    }
-
-    // return the parsed list and the remaining characters minus the ] that terminates the list this just parsed
-    (Packet::List(packets), &list[1..])
-}
-
-pub fn part_1() -> usize {
-    let pairs = parse();
-
-    pairs
-        .iter()
-        .positions(|[left, right]| left < right)
-        .map(|idx| idx + 1)
-        .sum()
-}
-
-pub fn part_2() -> usize {
-    let pairs = parse();
-    let mut packets: Vec<_> = pairs.iter().flatten().collect();
-
-    let divider_1 = parse_packet("[[2]]");
-    let divider_2 = parse_packet("[[6]]");
-
-    packets.push(&divider_1);
-    packets.push(&divider_2);
-
-    packets.sort_unstable();
-
-    packets
-        .into_iter()
-        .positions(|packet| packet == &divider_1 || packet == &divider_2)
-        .map(|idx| idx + 1)
-        .product()
+    println!("part 1 res: {}",result);
 }
 
 fn main() {
-    println!("p1 result: {}", part_1());
+    for file in ["13.txt"] {
+        let now = std::time::Instant::now();
+        let data = std::fs::read_to_string(file).unwrap();
+        solve1(&data);
+        solve2(&data);
+        println!("elapsed: {}ms", now.elapsed().as_millis());
+    }
 }
